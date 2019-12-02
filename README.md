@@ -8,7 +8,7 @@ For a Python interface, please check  [ap-perf-py](https://github.com/rizalzaf/a
 
 ## Overview
 
-AdversarialPrediction.jl enables us to easily integrate generic performance metrics (including non-decomposable metrics) into our differentiable learning pipeline. It currently supports performance metrics that are defined over binary classification problems.
+AdversarialPrediction.jl enables easily integration of generic performance metrics (including non-decomposable metrics) into our differentiable learning pipeline. It currently supports performance metrics that are defined over binary classification problems.
 Below is a code example for incorporating the F-2 score metric into a convolutional neural network training pipeline of [FluxML](https://github.com/FluxML/Flux.jl). 
 
 ```julia
