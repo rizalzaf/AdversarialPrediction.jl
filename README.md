@@ -60,11 +60,11 @@ For GPU training, `CuArrays` package needs to be installed.
 Different tasks in machine learning  require different metrics that align  well with the tasks. For binary classification problems, many of the commonly used performance metrics are derived from the confusion matrix. 
 A confusion matrix is a table that reports the values that relate the prediction of a classifier with the ground truth labels. The table below shows the anatomy of a confusion matrix.
 
-<img src="assets/confusion_matrix.png" width="450">
+<div style="text-align:center"><img src="assets/confusion_matrix.png" width="470"></div>
 
 Some of the metrics are decomposable, which means that it can be broken down to an independent sum of another metric that depends only on a single sample. However, most of the interesting performance metrics are non-decomposable, where we need to consider all samples at once. There are a wide variety of non-decomposable performance metrics, for example:
 
-<img src="assets/metrics.png" width="480">
+<div style="text-align:center"><img src="assets/metrics.png" width="500"></div>
 
 AdversarialPrediction.jl supports a family of performance metrics that can be expressed as a sum of fractions:
 ```math
