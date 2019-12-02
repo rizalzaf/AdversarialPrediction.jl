@@ -3,7 +3,7 @@
 This package provides a way to easily optimize generic performance metrics in supervised learning settings using the [Adversarial Prediction](https://arxiv.org/abs/1812.07526) framework. 
 The method can be integrated easily into differentiable learning pipelines.
 The package is a Julia implementation of the paper ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"]() by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
-For a Python interface, please check  [ap-perf-py]().
+For a Python interface, please check  [ap-perf-py](https://github.com/rizalzaf/ap_perf_py).
 
 
 ## Overview
@@ -228,11 +228,11 @@ Please check [JuMP's website](https://github.com/JuliaOpt/JuMP.jl) for the list 
 
 ## Code Examples
 
-For working examples, please visit [AP-examples]() repository. The project contains examples of using AdversarialPrediction.jl for image classification with MNIST and FashionMNIST datasets, as well as for classification with tabular data.
+For working examples, please visit [AP-examples](https://github.com/rizalzaf/AP-examples) repository. The project contains examples of using AdversarialPrediction.jl for image classification with MNIST and FashionMNIST datasets, as well as for classification with tabular data.
 
 ## Python Interface
 
-We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library. This enables easy integration with Python codes as well as PyTorch deep learning framework. Please visit [ap-perf-py]() for the details.
+We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library. This enables easy integration with Python codes as well as PyTorch deep learning framework. Please visit [ap-perf-py](https://github.com/rizalzaf/ap_perf_py) for the details.
 
 ## Citation
 
