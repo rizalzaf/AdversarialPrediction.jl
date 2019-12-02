@@ -9,7 +9,7 @@ For a Python interface, please check  [ap-perf-py](https://github.com/rizalzaf/a
 ## Overview
 
 AdversarialPrediction.jl enables us to easily integrate generic performance metrics (including non-decomposable metrics) into our differentiable learning pipeline. It currently supports performance metrics that are defined over binary classification problems.
-Below is a code example for incorporating the F-2 score metric into a convolutional neural network training pipeline of FluxML. 
+Below is a code example for incorporating the F-2 score metric into a convolutional neural network training pipeline of [FluxML](https://github.com/FluxML/Flux.jl). 
 
 ```julia
 using Flux
@@ -44,7 +44,7 @@ As we can see from the code above, we can just write a function that calculate t
 
 AdversarialPrediction.jl can be installed from a Julia terminal:
 ```
-]add https://gihub.com/......
+]add https://github.com/rizalzaf/AdversarialPrediction.jl
 ```
 Some pre-requisite packages will be installed automatically: `JuMP`, `ECOS`, `Requires`, and `Flux`. Note that it requires `Flux v0.9` which uses `Tracker`-based autodifferentiation tool, rather than the newer `Zygote`-based tool. It will switches to `Zygote` in the future release.
 
