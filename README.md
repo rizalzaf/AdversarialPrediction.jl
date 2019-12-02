@@ -23,11 +23,11 @@ model = Chain(
   Dense(4*4*50, 500), Dense(500, 1), vec
 )      
 
-@metric F2Score
-function define(::Type{F2Score}, C::ConfusionMatrix)
-    return ((1 + 2^2) * C.tp) / (2^2 * C.ap + C.pp)  
+@metric FBeta beta
+function define(::Type{FBeta}, C::ConfusionMatrix, beta)
+    return ((1 + beta^2) * C.tp) / (beta^2 * C.ap + C.pp)  
 end   
-f2_score = F2Score()
+f2_score = FBeta(2)
 special_case_positive!(f2_score)
 
 objective(x, y) = ap_objective(model(x), y, f2_score)
@@ -250,4 +250,4 @@ Please cite the following papers if you use AdversarialPrediction.jl for your re
 
 This project is supported by a grant from the [Bosch Center for Artificial Intelligence](https://www.bosch-ai.com/).
 
-This project depends on previous foundational research in Adversarial Prediction by [Prof. Brian Ziebart's](https://www.cs.uic.edu/Ziebart) and [Prof. Xinhua Zhang's](https://www.cs.uic.edu/~zhangx/) research groups at the [University of Illinois at Chicago](https://www.cs.uic.edu).
+This project is not possible without previous foundational research in Adversarial Prediction by [Prof. Brian Ziebart's](https://www.cs.uic.edu/Ziebart) and [Prof. Xinhua Zhang's](https://www.cs.uic.edu/~zhangx/) research groups at the [University of Illinois at Chicago](https://www.cs.uic.edu).
