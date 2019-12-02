@@ -235,7 +235,7 @@ We also provide a python interface to AdversarialPrediction.jl via [PyJulia](htt
 
 ## Citation
 
-Please cite the following papers if you use AdversarialPrediction.jl for your research.
+Please cite the following paper if you use the AdversarialPrediction.jl for your research.
 ```
 @article{ap-perf,
   title={AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning},
