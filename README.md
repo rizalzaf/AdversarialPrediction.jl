@@ -35,9 +35,8 @@ Flux.train!(objective, params(model), train_set, ADAM(1e-3))
 ```
 
 As we can see from the code above, we can just write a function that calculate the F-2 score from the entities in the confusion matrix, and incorporate it into our learning pipeline using `ap_objective` function. Note that the equation for F-beta in general is:   
-```math
-\frac{(1 + \beta^2) \text{TP}}{\beta^2 \text{AP} + \text{PP}}
-```
+<div style="text-align:center"><img src="assets/fbeta.gif"></div>
+
 
 
 ## Installation
@@ -67,10 +66,10 @@ Some of the metrics are decomposable, which means that it can be broken down to 
 <div style="text-align:center"><img src="assets/metrics.png" width="500"></div>
 
 AdversarialPrediction.jl supports a family of performance metrics that can be expressed as a sum of fractions:
-```math
-\text{metric}(\hat{\bf y},{\bf y}) = \sum_j \frac{a_j \text{TP} + b_j \text{TN} + f_j (\text{PP}, \text{AP})}{g_j(\text{PP}, \text{AP})}
-```    
-where $a_j$ and $b_j$ are constants, whereas $f_j$ and $g_j$ are functions over PP and AP.
+
+<div style="text-align:center"><img src="assets/metric_construction.gif"></div>
+ 
+where a<sub>j</sub> and b<sub>j</sub> are constants, whereas f<sub>j</sub> and g<sub>j</sub> are functions over PP and AP.
 Hence, the numerator is a linear function over true positive (TP) and true negative (TN) which may also depends on sum statistics, i.e., predicted and actual positive (PP and AP) as well as their negative counterparts (predicted and actual negative (PN an AN)) and all data (ALL).
 The denominator depends only on the sum statistics (PP, AP, PN, AN, and ALL). This construction of performance metrics covers a vast range of commonly used metrics, including all metrics in the table above.
 
