@@ -2,7 +2,7 @@
 
 This package provides a way to easily optimize generic performance metrics in supervised learning settings using the [Adversarial Prediction](https://arxiv.org/abs/1812.07526) framework. 
 The method can be integrated easily into differentiable learning pipelines.
-The package is a Julia implementation of the paper ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"]() by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
+The package is a Julia implementation of the paper ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"](https://arxiv.org/abs/1912.00965) by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
 For a Python interface, please check  [ap-perf-py](https://github.com/rizalzaf/ap_perf_py).
 
 
@@ -240,7 +240,7 @@ Please cite the following paper if you use the AdversarialPrediction.jl for your
 @article{ap-perf,
   title={AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning},
   author={Fathony, Rizal and Kolter, Zico},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
+  journal={arXiv preprint arXiv:1912.00965},
   year={2019}
 }
 ```
