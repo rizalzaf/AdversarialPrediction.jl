@@ -356,7 +356,7 @@ function compute_grad_p(Q::AbstractMatrix, multiplier_pq::ConstantOverPQ, info::
     dP .+= (-(sum(dp_zerovec)) ./ ks')
 
     # gather constants from (1 - P(sum not 0)) (1 - Q(sum not 0))
-    const_p = 0.0
+    const_p = 0.0 * sum(qsum)   # match the type of Q
     if info.special_case_positive
         const_p += sum(dp_zerovec)
     end
@@ -470,10 +470,11 @@ function solve_lp_q(pm::PerformanceMetric, PSI::AbstractMatrix)
     v = pm.lp_model.obj_dict[:v] ::VariableRef
     @objective(pm.lp_model, Min, v - sum(PSI .* S .* ks'))
 
-    # use last solution as initial (warm start)
-    if termination_status(pm.lp_model) != MOI.OPTIMIZE_NOT_CALLED
-        set_start_value.(all_variables(pm.lp_model), value.(all_variables(pm.lp_model)))
-    end
+    # disable warm_start, since each batch contains different samples
+    # # use last solution as initial (warm start)
+    # if termination_status(pm.lp_model) != MOI.OPTIMIZE_NOT_CALLED
+    #     set_start_value.(all_variables(pm.lp_model), value.(all_variables(pm.lp_model)))
+    # end
 
     # optimize
     optimize!(pm.lp_model)
@@ -578,10 +579,11 @@ function solve_lp_q_cs(pm::PerformanceMetric, PSI::AbstractMatrix, y::AbstractVe
 
     @objective(pm.lp_model, Min, v - sum(PSI .* S .* ks') + ac - atau)
 
-    # use last solution as initial (warm start)
-    if termination_status(pm.lp_model) != MOI.OPTIMIZE_NOT_CALLED
-        set_start_value.(all_variables(pm.lp_model), value.(all_variables(pm.lp_model)))
-    end
+    # disable warm_start, since each batch contains different samples
+    # # use last solution as initial (warm start)
+    # if termination_status(pm.lp_model) != MOI.OPTIMIZE_NOT_CALLED
+    #     set_start_value.(all_variables(pm.lp_model), value.(all_variables(pm.lp_model)))
+    # end
 
     # optimize
     optimize!(pm.lp_model)
