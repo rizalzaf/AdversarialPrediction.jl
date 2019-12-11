@@ -215,21 +215,21 @@ function compute_constraints(pm::PerformanceMetric, yhat::AbstractVector{<:Numbe
         # check for special cases
         if pm.info.cs_special_case_positive_list[ics]
             if sum(y .== 0) == length(y) && sum(yhat .== 0) == length(yhat)
-                vals[ics] = 1f0
+                vals[ics] = 1f0; continue
             elseif sum(y .== 0) == length(y)
-                vals[ics] = 0f0
+                vals[ics] = 0f0; continue
             elseif sum(yhat .== 0) == length(yhat)
-                vals[ics] = 0f0
+                vals[ics] = 0f0; continue
             end
         end
         
         if pm.info.cs_special_case_negative_list[ics]
             if sum(y .== 1) == length(y) && sum(yhat .== 1) == length(yhat)
-                vals[ics] = 1f0
+                vals[ics] = 1f0; continue
             elseif sum(y .== 1) == length(y)
-                vals[ics] = 0f0
+                vals[ics] = 0f0; continue
             elseif sum(yhat .== 1) == length(yhat)
-                vals[ics] = 0f0
+                vals[ics] = 0f0; continue
             end
         end
 
