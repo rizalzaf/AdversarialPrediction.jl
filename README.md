@@ -224,7 +224,7 @@ Please check [JuMP's website](https://github.com/JuliaOpt/JuMP.jl) for the list 
 
 ## Running Time and Batch Size
 
-The adversarial prediction formulation inside the function `ap_objective` needs to solve LP problems with a quadratic size of variables, i.e., O(n^2) where n is the number of samples in a batch. To keep the running time relatively fast, we suggest setting the batch size to be around 25 samples. Since the complexity of solving a linear program is O(n^3), where n is the number of variables, then the total running time complexity id O(m^6). However, many linear program solvers perform aggressive optimizations to reduce the practical running time.
+The adversarial prediction formulation inside the function `ap_objective` needs to solve LP problems with a quadratic size of variables, i.e., O(m^2) where m is the number of samples in a batch. Since the complexity of solving a linear program is O(n^3), where n is the number of variables, then the total running time complexity is O(m^6). However, many linear program solvers perform aggressive optimizations to reduce the practical running time.
 
 To keep the running time relatively fast, we suggest setting the batch size to be less than or around 25 samples if `Gurobi` is used as the solver, less than or around 20 samples if `Mosek` is used as the solver, and less than or around 15 samples if `ECOS` is used as the solver.   
 
