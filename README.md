@@ -8,7 +8,7 @@ For a Python interface, please check  [ap-perf-py](https://github.com/rizalzaf/a
 
 ## Overview
 
-AdversarialPrediction.jl enables easily integration of generic performance metrics (including non-decomposable metrics) into our differentiable learning pipeline. It currently supports performance metrics that are defined over binary classification problems.
+AdversarialPrediction.jl enables easy integration of generic performance metrics (including non-decomposable metrics) into our differentiable learning pipeline. It currently supports performance metrics that are defined over binary classification problems.
 Below is a code example for incorporating the F-2 score metric into a convolutional neural network training pipeline of [FluxML](https://github.com/FluxML/Flux.jl). 
 
 ```julia
@@ -34,7 +34,7 @@ objective(x, y) = ap_objective(model(x), y, f2_score)
 Flux.train!(objective, params(model), train_set, ADAM(1e-3))
 ```
 
-As we can see from the code above, we can just write a function that calculate the F-2 score from the entities in the confusion matrix, and incorporate it into our learning pipeline using `ap_objective` function. Note that the equation for F-beta in general is:   
+As we can see from the code above, we can just write a function that calculates the F-2 score from the entities in the confusion matrix, and incorporate it into our learning pipeline using `ap_objective` function. Note that the equation for F-beta in general is:   
 <div style="text-align:center"><img src="assets/fbeta.gif"></div>
 
 
@@ -45,11 +45,11 @@ AdversarialPrediction.jl can be installed from a Julia terminal:
 ```
 ]add https://github.com/rizalzaf/AdversarialPrediction.jl
 ```
-Some pre-requisite packages will be installed automatically: `JuMP`, `ECOS`, `Requires`, and `Flux`. Note that it requires `Flux v0.9` which uses `Tracker`-based autodifferentiation tool, rather than the newer `Zygote`-based tool. It will switches to `Zygote` in the future release.
+Some pre-requisite packages will be installed automatically: `JuMP`, `ECOS`, `Requires`, and `Flux`. Note that it requires `Flux v0.9`, which uses `Tracker`-based auto differentiation tool, rather than the newer `Zygote`-based tool. It will switches to `Zygote` in the future release.
 
 We also recommend installing `Gurobi` separately. 
 The inner optimization in the adversarial prediction framework requires solving LP problems. 
-`Gurobi` will be used as the solver if it is loaded; otherwise `ECOS` solver will be used. 
+`Gurobi` will be used as the solver if it is loaded; otherwise, `ECOS` solver will be used. 
 We recommend `Gurobi` as the solver, since it is usually faster than `ECOS`.
 For GPU training, `CuArrays` package needs to be installed.
 
@@ -70,13 +70,13 @@ AdversarialPrediction.jl supports a family of performance metrics that can be ex
 <div style="text-align:center"><img src="assets/metric_construction.gif"></div>
  
 where a<sub>j</sub> and b<sub>j</sub> are constants, whereas f<sub>j</sub> and g<sub>j</sub> are functions over PP and AP.
-Hence, the numerator is a linear function over true positive (TP) and true negative (TN) which may also depends on sum statistics, i.e., predicted and actual positive (PP and AP) as well as their negative counterparts (predicted and actual negative (PN an AN)) and all data (ALL).
+Hence, the numerator is a linear function over true positive (TP) and true negative (TN) which may also depends on sum statistics, i.e., predicted and actual positive (PP and AP) as well as their negative counterparts (predicted and actual negative (PN and AN)) and all data (ALL). Note that PN, AN, and ALL can be derived form PP and AP since ALL is just a constant, PN = ALL - PP, and AN = ALL - AP.
 The denominator depends only on the sum statistics (PP, AP, PN, AN, and ALL). This construction of performance metrics covers a vast range of commonly used metrics, including all metrics in the table above.
 
 
 ## Defining Performance Metrics
 
-A performance metric can be defined in AdversarialPrediction.jl using the macro `@metric MetricName`.  We also need to write the definition of the metric by implementing a function that depends on the type of the metric and the confusion matrix: `define(::Type{MetricName}, C::ConfusionMatrix)`. Below is an example of F-1 score metric definition.
+A performance metric can be defined in AdversarialPrediction.jl using the macro `@metric MetricName`.  We also need to write the definition of the metric by implementing a function that depends on the type of the metric and the confusion matrix: `define(::Type{MetricName}, C::ConfusionMatrix)`. Below is an example of the F-1 score metric definition.
 ```julia
 @metric F1Score
 function define(::Type{F1Score}, C::ConfusionMatrix)
