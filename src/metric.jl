@@ -355,11 +355,9 @@ function compute_grad_p(Q::AbstractMatrix, multiplier_pq::ConstantOverPQ, info::
     ## transform dp_zerovec and dq_zerovec as dP and dQ
     dP .+= (-(sum(dp_zerovec)) ./ ks')
 
-    # gather constants from (1 - P(sum not 0)) (1 - Q(sum not 0))
-    const_p = 0.0 * sum(qsum)   # match the type of Q
-    if info.special_case_positive
-        const_p += sum(dp_zerovec)
-    end
+    # gather constants from (1 - P(sum not 0)) (1 - Q(sum not 0)) if special case positive or
+    # gather constants from (1 - P(sum not 0)) 
+    const_p = sum(dp_zerovec)
 
     return dP, const_p
 end
