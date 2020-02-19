@@ -30,7 +30,7 @@ function __init__()
     end
 end
 
-export ConfusionMatrix, CM_Value
+export ConfusionMatrix, CM_Value, PerformanceMetric
 export @metric, define, constraint
 export set_lp_solver!, special_case_positive!, special_case_negative!, cs_special_case_positive!, cs_special_case_negative!
 export compute_metric, compute_constraints, objective
