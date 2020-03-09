@@ -2,7 +2,7 @@
 
 This package provides a way to easily optimize generic performance metrics in supervised learning settings using the [Adversarial Prediction](https://arxiv.org/abs/1812.07526) framework. 
 The method can be integrated easily into differentiable learning pipelines.
-The package is a Julia implementation of the paper ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"](https://arxiv.org/abs/1912.00965) by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
+The package is a Julia implementation of an AISTATS 2020 paper ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"](https://arxiv.org/abs/1912.00965) by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
 For a Python interface, please check  [ap-perf-py](https://github.com/rizalzaf/ap_perf_py).
 
 
@@ -34,7 +34,25 @@ objective(x, y) = ap_objective(model(x), y, f2_score)
 Flux.train!(objective, params(model), train_set, ADAM(1e-3))
 ```
 
-As we can see from the code above, we can just write a function that calculates the F-2 score from the entities in the confusion matrix, and incorporate it into our learning pipeline using `ap_objective` function. Note that the equation for F-beta in general is:   
+As we can see from the code above, we can just write a function that calculates the F-2 score from the entities in the confusion matrix, and incorporate it into our learning pipeline using `ap_objective` function. 
+This is a straightforward modification from the standard cross entropy training by using the `ap_objective` function to replace the `logitbinarycrossentropy` objective.
+
+```julia
+using Flux
+
+model = Chain(
+  Conv((5, 5), 1=>20, relu), MaxPool((2,2)),
+  Conv((5, 5), 20=>50, relu), MaxPool((2,2)),
+  x -> reshape(x, :, size(x, 4)),
+  Dense(4*4*50, 500), Dense(500, 1), vec
+)     
+
+objective(x, y) = mean(logitbinarycrossentropy(model(x), y))
+Flux.train!(objective, params(model), train_set, ADAM(1e-3))
+```
+
+
+Note that the equation for F-beta in general is:   
 <div style="text-align:center"><img src="assets/fbeta.gif"></div>
 
 
@@ -45,13 +63,7 @@ AdversarialPrediction.jl can be installed from a Julia terminal:
 ```
 ]add https://github.com/rizalzaf/AdversarialPrediction.jl
 ```
-Some pre-requisite packages will be installed automatically: `JuMP`, `ECOS`, `Requires`, and `Flux`. Note that it requires `Flux v0.9`, which uses `Tracker`-based auto differentiation tool, rather than the newer `Zygote`-based tool. It will switches to `Zygote` in the future release.
-
-We also recommend installing `Gurobi` separately. 
-The inner optimization in the adversarial prediction framework requires solving LP problems. 
-`Gurobi` will be used as the solver if it is loaded; otherwise, `ECOS` solver will be used. 
-We recommend `Gurobi` as the solver, since it is usually faster than `ECOS`.
-For GPU training, `CuArrays` package needs to be installed.
+Some pre-requisite packages will be installed automatically: `Flux`, `Requires`, and `LBFGSB`. Note that it requires `Flux v0.9`, which uses `Tracker`-based auto differentiation tool, rather than the newer `Zygote`-based tool. It will switches to `Zygote` in the future release. For GPU training, `CuArrays` package needs to be installed.
 
 
 ## Performance Metrics
@@ -196,41 +208,24 @@ objective(x, y) = ap_objective(model(x), y, f1_score)
 Flux.train!(objective, params(model), train_set, ADAM(1e-3))
 ```
 
-## Customizing Linear Program Solver
+## Customizing Inner Optimization Solver
 
-For solving the inner LP problem, AdversarialPrediction.jl uses `JuMP` as the modeling framework and `Gurobi` as the default  solver if it is loaded in the environment. If `Gurobi` is not available, `ECOS` solver will be used. 
-To use `Gurobi` as the default  solver, simply load the package before loading AdversarialPrediction.jl, i.e.:
-```julia
-using Gurobi
-using AdversarialPrediction
-import AdversarialPrediction: define, constraint
-```
-
-We can also manually set the solver using `JuMP`'s solver construction. Below are examples of manually setting the LP solver to `Mosek` and `ECOS`.
+For solving the inner optimization problem, AdversarialPrediction.jl uses ADMM based formulation. In the default setting, it will run 100 iterations of the ADMM optimization. We can also manually set the number of iteration using `max_iter` argument in the `ap_objective`.
 
 ```julia
-using JuMP, MosekTools
-solver = JuMP.with_optimizer(Mosek.Optimizer, QUIET=true)
-set_lp_solver!(f1_score, solver)
+objective(x, y) = ap_objective(model(x), y, f1_score)            # 100 iterations
+objective(x, y) = ap_objective(model(x), y, max_iter = 50)       # 50 iterations
+objective(x, y) = ap_objective(model(x), y, max_iter = 200)      # 200 iterations
 ```
-
-```julia
-using JuMP, ECOS
-solver = JuMP.with_optimizer(ECOS.Optimizer, verbose = false)
-set_lp_solver!(f1_score, solver)
-```
-
-Please check [JuMP's website](https://github.com/JuliaOpt/JuMP.jl) for the list of supported solvers.
 
 ## Running Time and Batch Size
 
-The adversarial prediction formulation inside the function `ap_objective` needs to solve LP problems with a quadratic size of variables, i.e., O(m^2) where m is the number of samples in a batch. Since the complexity of solving a linear program is O(n^3), where n is the number of variables, then the total running time complexity is O(m^6). However, many linear program solvers perform aggressive optimizations to reduce the practical running time.
-
-To keep the running time relatively fast, we suggest setting the batch size to be less than or around 25 samples if `Gurobi` is used as the solver, less than or around 20 samples if `Mosek` is used as the solver, and less than or around 15 samples if `ECOS` is used as the solver.   
+The adversarial prediction formulation inside the function `ap_objective` needs to solve a maximin problem with a quadratic size of variables using the ADMM solver. The complexity of solving the problem is O(m^3), where m is the number of samples in a minibatch.
+In practice, for a batch size of 25, the ADMM solver takes around 20 - 30 milliseconds to solve on a PC with an Intel Core i7 processor. If we reduce the ADMM iterations to 50 iterations, it will take around 10 - 15 milliseconds.
 
 ## Code Examples
 
-For working examples, please visit [AP-examples](https://github.com/rizalzaf/AP-examples) repository. The project contains examples of using AdversarialPrediction.jl for image classification with MNIST and FashionMNIST datasets, as well as for classification with tabular data.
+For working examples, please visit [AP-examples](https://github.com/rizalzaf/AP-examples) repository. The project contains examples of using AdversarialPrediction.jl for classification with tabular datasets, as well as for image classification with MNIST and FashionMNIST datasets.
 
 ## Python Interface
 

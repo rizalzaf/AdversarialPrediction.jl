@@ -22,18 +22,50 @@ mutable struct MetricData{TE <: CM_Expression, TT <: Tuple}
         Vector{Matrix{Float32}}(), Vector{Float32}(), Vector{Float32}())
 end
 
+# data for ADMM optimization
+mutable struct OptData
+    # n sample
+    n::Int
+
+    # f(AQB + QC +D) + <Q,E> + ct     
+    A::Matrix{Float32}                 
+    B::Matrix{Float32}
+    C::Matrix{Float32}
+    D::Matrix{Float32}                 
+    E::Matrix{Float32}
+    ct::Float32             # constant
+
+    # stored eigen decomposition matrix
+    CIinv::Matrix{Float32} 
+    BC_Cinv::Matrix{Float32}
+    UA::Matrix{Float32}     
+    UBC::Matrix{Float32}
+    UAinv::Matrix{Float32}
+    UBCinv::Matrix{Float32}
+    sabc1::Matrix{Float32}
+
+    function OptData()
+        MO = zeros(Float32, 0, 0)
+        new(0, MO, MO, MO, MO, MO, 0f0, MO, MO, MO, MO, MO, MO, MO)
+    end 
+
+    function OptData(n, A, B, C, D, E, ct, CIinv, BC_Cinv, UA, UBC, UAInv, UBCinv, sabc1)
+        new(n, A, B, C, D, E, ct, CIinv, BC_Cinv, UA, UBC, UAInv, UBCinv, sabc1)
+    end
+end
+
 
 ##### METRIC ####
 # abstract typr for performance metric
 abstract type PerformanceMetric end
 
 ## functions that needed to be implemented
-function define(::Type{<:PerformanceMetric}, C::ConfusionMatrix, args...)
+function define(::Type{<:PerformanceMetric}, C::ConfusionMatrix)
     return EXPR_UnaryIdentity()
 end
 
 # optional function to overload
-function constraint(::Type{<:PerformanceMetric}, C::ConfusionMatrix, args...)
+function constraint(::Type{<:PerformanceMetric}, C::ConfusionMatrix)
     return nothing
 end
 
@@ -43,17 +75,11 @@ macro metric(name)
         mutable struct $name{T <: MetricData} <: PerformanceMetric
             info::MetricInfo
             data::T
-            lp_model::JuMP.Model
-            lp_solver::JuMP.OptimizerFactory
+            opt_data::OptData
 
             function $name() 
                 info, data = initialize($name)
-                if gurobi_available()
-                    solver = JuMP.with_optimizer(Gurobi.Optimizer, GUROBI_ENV, Method=0, OutputFlag=0)
-                else
-                    solver = JuMP.with_optimizer(ECOS.Optimizer, verbose = false)
-                end
-                new{typeof(data)}(info, data, JuMP.Model(), solver)
+                new{typeof(data)}(info, data, OptData())
             end
         end
     end
@@ -67,18 +93,12 @@ macro metric(name, args...)
         mutable struct $name{T <: MetricData} <: PerformanceMetric
             info::MetricInfo
             data::T
-            lp_model::JuMP.Model
-            lp_solver::JuMP.OptimizerFactory
+            opt_data::OptData
             $([arg for arg in args]...)
 
             function $name($([arg for arg in args]...)) 
                 info, data = initialize($name, $([arg for arg in args]...))
-                if gurobi_available()
-                    solver = JuMP.with_optimizer(Gurobi.Optimizer, GUROBI_ENV, Method=0, OutputFlag=0)
-                else
-                    solver = JuMP.with_optimizer(ECOS.Optimizer, verbose = false)
-                end
-                new{typeof(data)}(info, data, JuMP.Model(), solver, $([arg for arg in args]...))
+                new{typeof(data)}(info, data, OptData(), $([arg for arg in args]...))
             end
         end
 
@@ -119,11 +139,6 @@ function cs_special_case_negative!(pm::PerformanceMetric, val::Bool)
 end
 
 
-## set solver
-function set_lp_solver!(pm::PerformanceMetric, solver::OptimizerFactory)
-    pm.lp_solver = solver
-end
-
 # list the constraints
 function list_constraints(constraint_expr::Tuple)
     return constraint_expr
@@ -159,7 +174,7 @@ function initialize(pm_type::Type{<:PerformanceMetric}, args...)
     end
 
     # check constraints
-    constraint_expr = constraint(pm_type, CM, args...)
+    constraint_expr = constraint(pm_type, CM)
     constraint_list = list_constraints(constraint_expr)
 
     info.n_constraints = length(constraint_list)
@@ -215,21 +230,21 @@ function compute_constraints(pm::PerformanceMetric, yhat::AbstractVector{<:Numbe
         # check for special cases
         if pm.info.cs_special_case_positive_list[ics]
             if sum(y .== 0) == length(y) && sum(yhat .== 0) == length(yhat)
-                vals[ics] = 1f0; continue
+                vals[ics] = 1f0
             elseif sum(y .== 0) == length(y)
-                vals[ics] = 0f0; continue
+                vals[ics] = 0f0
             elseif sum(yhat .== 0) == length(yhat)
-                vals[ics] = 0f0; continue
+                vals[ics] = 0f0
             end
         end
         
         if pm.info.cs_special_case_negative_list[ics]
             if sum(y .== 1) == length(y) && sum(yhat .== 1) == length(yhat)
-                vals[ics] = 1f0; continue
+                vals[ics] = 1f0
             elseif sum(y .== 1) == length(y)
-                vals[ics] = 0f0; continue
+                vals[ics] = 0f0
             elseif sum(yhat .== 1) == length(yhat)
-                vals[ics] = 0f0; continue
+                vals[ics] = 0f0
             end
         end
 
@@ -256,17 +271,134 @@ function compute_multipliers!(pm::PerformanceMetric, n::Integer)
 end
 
 
-# hepler functions for calculating gradients
-function collect_grad_p(cPQ, Q)
-    return Q * cPQ'
+function compute_admm_matrices!(pm::PerformanceMetric, n)
+    multiplier_pq = pm.data.multiplier_pq
+    info = pm.info 
+
+    ### special case positive only, for now
+    ks = 1:n
+    IK = diagm(1 ./ ks)
+
+    idx = 2:n+1
+    idn = 1:n
+
+    ## <P,  A Q B + Q C + D> + <Q, E>
+    ## A = ones(n,n)
+
+    A = ones(Float32, n,n)
+    B = zeros(Float32, n,n)
+    C = zeros(Float32, n,n)
+    D = zeros(Float32, n,n)
+    E = zeros(Float32, n,n)
+
+    mult_u0v0 = 0f0
+
+    # special case negative modify M
+    if info.special_case_negative
+        if !isnothing(multiplier_pq.cPQ) 
+            multiplier_pq.cPQ[n, :] .= 0f0
+            multiplier_pq.cPQ[:, n] .= 0f0
+            multiplier_pq.cPQ[n, n] = 1f0
+        end
+        if !isnothing(multiplier_pq.c)
+            multiplier_pq.c[n, :] .= 0f0
+            multiplier_pq.c[:, n] .= 0f0
+            multiplier_pq.c[n, n] = 1f0
+        end
+    end
+
+
+    # compute matrices 
+    if !isnothing(multiplier_pq.cPQ) 
+        C += multiplier_pq.cPQ[idx, idx]'
+    end
+    if !isnothing(multiplier_pq.cPQ0) 
+        C -= multiplier_pq.cPQ0[idx, idx]'
+        B += IK * multiplier_pq.cPQ0[idx, idx]'
+    end
+   
+    if !isnothing(multiplier_pq.cP0Q) 
+        C -= multiplier_pq.cP0Q[idx, idx]'
+        B += multiplier_pq.cPQ0[idx, idx]' * IK
+    end
+    if !isnothing(multiplier_pq.cP0Q0) 
+        MP0Q0 = multiplier_pq.cP0Q0
+        C += MP0Q0[idx, idx]'
+        B += n * IK * MP0Q0[idx, idx]' * IK  -  MP0Q0[idx, idx]' * IK  -  IK * MP0Q0[idx, idx]'
+
+        if !info.special_case_positive
+            B += MP0Q0[1, idx] * ones(n)' * IK  -  n * IK * MP0Q0[1, idx] * ones(n)' * IK
+            B += IK * ones(n) * MP0Q0[idx, 1]'  -  n * IK * ones(n) * MP0Q0[idx, 1]' * IK
+
+            D += n * ones(n) * MP0Q0[idx, 1]' * IK  -  ones(n) * MP0Q0[idx, 1]'
+            E += n * ones(n) * MP0Q0[1, idx]' * IK  -  ones(n) * MP0Q0[1, idx]'
+
+            mult_u0v0 += MP0Q0[1,1]
+        end
+    end
+
+    if !isnothing(multiplier_pq.c)
+        B += IK * multiplier_pq.c[idx, idx]' * IK
+        
+        if !info.special_case_positive
+            B += IK * ones(n) * multiplier_pq.c[idx, 1]' * IK  -  IK * multiplier_pq.c[1, idx] * ones(n)' * IK
+            D += ones(n) * multiplier_pq.c[idx, 1]' * IK
+            E += ones(n) * multiplier_pq.c[1, idx]' * IK
+
+            mult_u0v0 += multiplier_pq.c[1, 1]
+        end
+    end
+    
+
+    if info.special_case_positive
+        B += IK * ones(n,n) * IK
+        D -= ones(n,n) * IK
+        E -= ones(n,n) * IK
+        ct = 1f0    
+    else
+        B += IK * ones(n,n) * IK * mult_u0v0
+        D -= ones(n,n) * IK * mult_u0v0
+        E -= ones(n,n) * IK * mult_u0v0
+        ct = mult_u0v0    
+    end
+
+
+    # eigen decomposition
+    # precompute Matrices
+    BC = n * B * B' + C * B' + B * C'
+    CIinv = inv(C * C' + I)
+    BC_Cinv = BC * CIinv
+
+    # find eigen decomposition of BC * CIinv using CIinv^{0.5} * BC * CIinv^{0.5}
+    # CIinv^{0.5} * BC * CIinv^{0.5} is symmetric, so we get a nicer eigendecomposition
+    # CIinv^{0.5} * BC * CIinv^{0.5} and BC * CIinv have the same eigen values
+    sqC = real(sqrt(CIinv))   # matrix sqrt: i.e  sqC * sqC = CIinv; always real since CIinv is posdef
+    sqC_BC_sqC = sqC * BC * sqC     # it's symmetric
+
+    sz, UZ = eigen(Symmetric(sqC_BC_sqC))
+
+    ## convert to eigen decomposition over A
+    sbc = sz
+    UBC = inv(sqC) * UZ
+
+    # eugen dec for A
+    sa, UA = eigen(Symmetric(A))
+    
+    # sa * sbc' + 1
+    sabc1 = (sa * sbc' .+ 1)
+
+    # inverses
+    UAinv = inv(UA)
+    UBCinv = inv(UBC)
+
+    # store matrices in opt_data
+    opt_data = OptData(n, A, B, C, D, E, ct, CIinv, BC_Cinv, UA, UBC, UAinv, UBCinv, sabc1)
+    pm.opt_data = opt_data
+
+    return nothing
 end
 
-function collect_grad_q(cPQ, P)
-    return P * cPQ
-end
-
-
-# computing gradients     
+# compute grad p from scratch
 function compute_grad_p(Q::AbstractMatrix, multiplier_pq::ConstantOverPQ, info::MetricInfo) 
     n = size(Q,1)
     
@@ -310,17 +442,17 @@ function compute_grad_p(Q::AbstractMatrix, multiplier_pq::ConstantOverPQ, info::
 
     # collect for regular idx
     if !isnothing(multiplier_pq.cPQ) 
-        dP_0k[idn, idx] += collect_grad_p(multiplier_pq.cPQ[idx, idx], Q_0k[idn, idx])
+        dP_0k[idn, idx] += Q_0k[idn, idx] * multiplier_pq.cPQ[idx, idx]'
     end
     if !isnothing(multiplier_pq.cPQ0) 
-        dP_0k[idn, idx] += collect_grad_p(multiplier_pq.cPQ0[idx, idx], Q0_0k[idn, idx])
+        dP_0k[idn, idx] += Q0_0k[idn, idx] * multiplier_pq.cPQ0[idx, idx]'
     end
    
     if !isnothing(multiplier_pq.cP0Q) 
-        dP0_0k[idn, idx] += collect_grad_p(multiplier_pq.cP0Q[idx, idx], Q_0k[idn, idx])
+        dP0_0k[idn, idx] += Q_0k[idn, idx] * multiplier_pq.cP0Q[idx, idx]'
     end
     if !isnothing(multiplier_pq.cP0Q0) 
-        dP0_0k[idn, idx] += collect_grad_p(multiplier_pq.cP0Q0[idx, idx], Q0_0k[idn, idx])
+        dP0_0k[idn, idx] += Q0_0k[idn, idx] * multiplier_pq.cP0Q0[idx, idx]'
     end
 
     if !isnothing(multiplier_pq.c)
@@ -362,9 +494,16 @@ function compute_grad_p(Q::AbstractMatrix, multiplier_pq::ConstantOverPQ, info::
     return dP, const_p
 end
 
-# computing gradients     
+
+# use the stored matric calculation instead
 function compute_grad_p(pm::PerformanceMetric, Q::AbstractMatrix) 
-    return compute_grad_p(Q, pm.data.multiplier_pq, pm.info)
+    # get stored matrices
+    od = pm.opt_data
+    A = od.A; B = od.B; C = od.C; D = od.D; E = od.E; ct = od.ct; 
+    dP = A * Q * B + Q * C + D
+    const_p = sum(Q .* E) + ct 
+
+    return dP, const_p
 end
 
 # generate constraints
@@ -421,195 +560,104 @@ function generate_constraints_on_p!(pm::PerformanceMetric, y::AbstractVector)
 end
 
 
-# formulate an lp problem     
-function formulate_lp_prob!(pm::PerformanceMetric, n::Integer)
-
-    if all_nothing(pm.data.multiplier_pq) || size(pm.lp_model.obj_dict[:S])[1] != n
-        compute_multipliers!(pm, n)
-    end
-
-    # optimize over R and S, which is P/k and Q/k instead
-    ks = 1:n
-
-    model = Model(pm.lp_solver)
-    @variable(model, S[1:n,1:n] >= 0)
-    @variable(model, D[1:n,1:n] >= 0) 
-    @variable(model, v >= 0) 
-    
-    @constraint(model, [i = 1:n, k = 1:n], S[i,k] <= 1/k * sum(S[:,k]))
-    @constraint(model, sum(S) <= 1)
-
-    dP, const_p = compute_grad_p(pm, S .* ks')
-    dR = dP .* ks'
-
-    Dk = [sum(D[:,j]) / j for i=1:n, j=1:n]
-    Z = dR - D + Dk
-
-    @constraint(model, v >= const_p)
-    @constraint(model, [i = 1:n, k = 1:n], v >= Z[i,k] + const_p)
-
-    pm.lp_model = model
-
-    return model
+function obj_admm_q(Q, A, B, C, D, E, ct)
+    obj = max_sumlargest(A * Q * B + Q * C + D) + sum(Q .* E) + ct
+    return obj
 end
 
-# solve lp problem     
-function solve_lp_q(pm::PerformanceMetric, PSI::AbstractMatrix)
+
+function solve_admm_q(pm::PerformanceMetric, PSI::AbstractMatrix, prox_function::Function; 
+    rho = 1.0, max_iter = 100) 
+
     n = size(PSI, 1)
     ks = 1:n
 
-    # create LP probs
-    if length(all_variables(pm.lp_model)) == 0 || size(pm.lp_model.obj_dict[:S])[1] != n
-        formulate_lp_prob!(pm, n)
-    end
+    # get stored matrices
+    od = pm.opt_data
+    A = od.A; B = od.B; C = od.C; D = od.D; E = od.E; ct = od.ct; 
+    CIinv = od.CIinv; BC_Cinv = od.BC_Cinv
+    UA = od.UA; UBC = od.UBC; UAinv = od.UAinv; UBCinv = od.UBCinv; sabc1 = od.sabc1
 
-    # modify objective
-    S = pm.lp_model.obj_dict[:S] ::Matrix{VariableRef}
-    v = pm.lp_model.obj_dict[:v] ::VariableRef
-    @objective(pm.lp_model, Min, v - sum(PSI .* S .* ks'))
+    EP = E - PSI
 
-    # disable warm_start, since each batch contains different samples
-    # # use last solution as initial (warm start)
-    # if termination_status(pm.lp_model) != MOI.OPTIMIZE_NOT_CALLED
-    #     set_start_value.(all_variables(pm.lp_model), value.(all_variables(pm.lp_model)))
-    # end
+    Q = zeros(n,n)
+    X = zeros(n,n)
+    Z = zeros(n,n)
 
-    # optimize
-    optimize!(pm.lp_model)
+    U = zeros(n,n)
+    W = zeros(n,n)
 
-    # get solution
-    Sv = value.(S) 
-    Q = Sv .* ks'
-    obj = objective_value(pm.lp_model)
-
-    return Float32.(Q), Float32(obj)
-end
-
-function solve_lp_q(pm::PerformanceMetric, psi::AbstractVector)
-    n = length(psi)
-    PSI = repeat(psi, 1, n)
-
-    Q, obj = solve_lp_q(pm, PSI)
-    q = vec(sum(Q, dims = 2))
-
-    return q, obj
-end
-
-# formulate an lp problem for metric with oonstraints  
-function formulate_lp_prob_cs!(pm::PerformanceMetric, y::AbstractVector)
-    n = length(y)
-    ks = 1:n
-
-    if all_nothing(pm.data.multiplier_pq) || size(pm.lp_model.obj_dict[:S])[1] != n
-        compute_multipliers!(pm, n)
-    end
-
-    # generate constraints
-    generate_constraints_on_p!(pm, y)
-
-    n_constraints = pm.info.n_constraints
-    B_list = pm.data.B_list
+    # resetting the storage in the LBFGS for marginal projection
+    reset_projection_storage()
     
-    # optimize over R and S, which is P/k and Q/k instead
+    it = 1
+    while true
 
-    model = Model(pm.lp_solver)
-    @variable(model, S[1:n,1:n] >= 0)
-    @variable(model, D[1:n,1:n] >= 0)
-    @variable(model, alpha[1:n_constraints] >= 0)
-    @variable(model, v >= 0)
-    
-    @constraint(model, [i = 1:n, k = 1:n], S[i,k] <= 1/k * sum(S[:,k]))
-    @constraint(model, sum(S) <= 1)
+        # opt Q
+        Q = marginal_projection( (rho * (X + W) - EP) / rho, init_storage_id = 1 )
 
-    dP, const_p = compute_grad_p(pm, S .* ks')
-    dR = dP .* ks'
+        # opt Z
+        Z = prox_function(A * X * B  +  X * C + D + U, rho, init_storage_id = 2)
 
-    Dk = [sum(D[:,j]) / j for i=1:n, j=1:n]
+        # opt X
+        DZU = D - Z + U
+        F = A * DZU * B' + DZU * C' + W - Q
 
-    @constraint(model, const_p <= v)
-    @constraint(model, cs_v[i = 1:n, k = 1:n], 
-        dR[i,k] - D[i,k] + Dk[i,k] + sum(alpha[l] * B_list[l][i,k] * k for l = 1:n_constraints)  + const_p <= v)
+        UFU = UAinv * (-F * CIinv) * UBC
+        X1 = UFU ./ sabc1
+        X = UA * X1 * UBCinv
 
-    pm.lp_model = model
+        # opt dual
+        U = U + A * X * B + X * C + D - Z
+        W = W + X - Q
 
-    return model
-end
-
-# solve lp problem for metric with oonstraints  
-function solve_lp_q_cs(pm::PerformanceMetric, PSI::AbstractMatrix, y::AbstractVector)
-    n = size(PSI, 1)
-    ks = 1:n
-
-    # create LP probs
-    if length(all_variables(pm.lp_model)) == 0 || size(pm.lp_model.obj_dict[:S])[1] != n
-        formulate_lp_prob_cs!(pm, y)
-    end
-
-    # update metric constraints based on y
-    generate_constraints_on_p!(pm, y)
-
-    n_constraints = pm.info.n_constraints
-    B_list = pm.data.B_list
-    c_list = pm.data.c_list
-    tau_list = pm.data.tau_list
-
-    # modify constraints
-    alpha = pm.lp_model.obj_dict[:alpha] ::Vector{VariableRef}
-    cs_v = pm.lp_model.obj_dict[:cs_v] ::Matrix{<:ConstraintRef}
-    for i = 1:n
-        for k = 1:n
-            for l = 1:n_constraints
-                set_normalized_coefficient(cs_v[i,k], alpha[l], B_list[l][i,k] * k)
-            end
+        if it >= max_iter
+            break
         end
+
+        it += 1
     end
 
-    # modify objective
-    S = pm.lp_model.obj_dict[:S] ::Matrix{VariableRef}
-    v = pm.lp_model.obj_dict[:v] ::VariableRef
-    
-    ac = alpha[1] * c_list[1]
-    atau = alpha[1] * tau_list[1]
-    for i = 2:n_constraints
-        ac += alpha[i] * c_list[i]
-        atau += alpha[i] * tau_list[i]
-    end
-
-    @objective(pm.lp_model, Min, v - sum(PSI .* S .* ks') + ac - atau)
-
-    # disable warm_start, since each batch contains different samples
-    # # use last solution as initial (warm start)
-    # if termination_status(pm.lp_model) != MOI.OPTIMIZE_NOT_CALLED
-    #     set_start_value.(all_variables(pm.lp_model), value.(all_variables(pm.lp_model)))
-    # end
-
-    # optimize
-    optimize!(pm.lp_model)
-
-    # get solution
-    Sv = value.(S)
-    Q = Sv .* ks'
-    obj = objective_value(pm.lp_model)
-
-    return Float32.(Q), Float32(obj)
+    obj = obj_admm_q(Q, A, B, C, D, EP, ct)
+   
+    return Float32.(Q), Float32(obj), it
 end
 
-function solve_lp_q_cs(pm::PerformanceMetric, psi::AbstractVector, y::AbstractVector)
+function solve_admm_q(pm::PerformanceMetric, psi::AbstractVector, prox_function::Function; args...)
     n = length(psi)
     PSI = repeat(psi, 1, n)
 
-    Q, obj = solve_lp_q_cs(pm, PSI, y)
+    Q, obj, it = solve_admm_q(pm, PSI, prox_function; args...)
     q = vec(sum(Q, dims = 2))
+    q = min.(q, 1)
 
-    return q, obj
+    return q, obj, it
 end
 
-# inner objective an gradients w.r.t. the potentials = theta * features 
-function objective(pm::PerformanceMetric, psi::AbstractVector, y::AbstractVector)
-    if pm.info.n_constraints == 0
-        q, obj = solve_lp_q(pm, psi)
-    else
-        q, obj = solve_lp_q_cs(pm, psi, y)
+
+function objective(pm::PerformanceMetric, psi::AbstractVector, y::AbstractVector; args...)
+
+    n = length(psi)
+
+    # compute stored multipliers and matrices 
+    if all_nothing(pm.data.multiplier_pq) || pm.opt_data.n != n
+        compute_multipliers!(pm, n)
     end
+    if pm.opt_data.n != n
+        compute_admm_matrices!(pm, n)
+    end    
+
+
+    if pm.info.n_constraints == 0
+        prox_function = prox_max_sumlargest
+    else
+        # update metric constraints based on y
+        generate_constraints_on_p!(pm, y)
+        prox_function(A, rho; args...) = prox_max_sumlargest_with_constraint(
+            A, rho, pm.data.B_list, pm.data.c_list, pm.data.tau_list; args...)   
+    end
+
+    q, obj = solve_admm_q(pm, psi, prox_function; args...)
+
     return obj, q
 end
