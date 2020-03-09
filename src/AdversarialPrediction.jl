@@ -17,6 +17,9 @@ include("projection.jl")
 include("metric.jl")
 include("nn.jl")
 
+# common metrics
+include("common_metrics/CommonMetrics.jl")
+
 # if Gurobi or CuArrays are loaded
 function __init__()
     @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" include("nncuda.jl")
