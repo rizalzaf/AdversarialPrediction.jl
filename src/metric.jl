@@ -296,14 +296,14 @@ function compute_admm_matrices!(pm::PerformanceMetric, n)
     # special case negative modify M
     if info.special_case_negative
         if !isnothing(multiplier_pq.cPQ) 
-            multiplier_pq.cPQ[n, :] .= 0f0
-            multiplier_pq.cPQ[:, n] .= 0f0
-            multiplier_pq.cPQ[n, n] = 1f0
+            multiplier_pq.cPQ[n+1, :] .= 0f0
+            multiplier_pq.cPQ[:, n+1] .= 0f0
+            multiplier_pq.cPQ[n+1, n+1] = 1f0
         end
         if !isnothing(multiplier_pq.c)
-            multiplier_pq.c[n, :] .= 0f0
-            multiplier_pq.c[:, n] .= 0f0
-            multiplier_pq.c[n, n] = 1f0
+            multiplier_pq.c[n+1, :] .= 0f0
+            multiplier_pq.c[:, n+1] .= 0f0
+            multiplier_pq.c[n+1, n+1] = 1f0
         end
     end
 
