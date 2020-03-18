@@ -174,7 +174,7 @@ function initialize(pm_type::Type{<:PerformanceMetric}, args...)
     end
 
     # check constraints
-    constraint_expr = constraint(pm_type, CM)
+    constraint_expr = constraint(pm_type, CM, args...)
     constraint_list = list_constraints(constraint_expr)
 
     info.n_constraints = length(constraint_list)
@@ -377,7 +377,12 @@ function compute_admm_matrices!(pm::PerformanceMetric, n)
 
     sz, UZ = eigen(Symmetric(sqC_BC_sqC))
 
-    ## convert to eigen decomposition over A
+    ## convert to eigen decomposition over BC * CIinv, say:
+    ## CIinv^{0.5} * BC * CIinv^{0.5} = U S U^-1, and
+    ## BC * CIinv = V S V^-1, therefore:
+    ## CIinv^{-0.5} CIinv^{0.5} * BC * CIinv^{0.5} CIinv^{0.5} = CIinv^{-0.5} U S U^-1 CIinv^{0.5}
+    ## BC * CIinv = CIinv^{-0.5} U S U^-1 CIinv^{0.5}
+    ## Hence: V = CIinv^{-0.5} U
     sbc = sz
     UBC = inv(sqC) * UZ
 
