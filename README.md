@@ -3,7 +3,7 @@
 This package provides a way to easily optimize generic performance metrics in supervised learning settings using the [Adversarial Prediction](https://arxiv.org/abs/1812.07526) framework. 
 The method can be integrated easily into differentiable learning pipelines.
 The package is a Julia implementation of an AISTATS 2020 paper, ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"](https://arxiv.org/abs/1912.00965), by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
-For a Python implementation of the framework, please check  [ap-perf](https://github.com/rizalzaf/ap_perf).
+For a Python implementation of the framework, please check  [ap_perf](https://github.com/rizalzaf/ap_perf).
 
 
 ## Overview
@@ -241,9 +241,9 @@ For working examples, please visit [AP-examples](https://github.com/rizalzaf/AP-
 
 ## Python Implementation and Interface
 
-We also provides a Python implementation of the framework: [ap-perf](https://github.com/rizalzaf/ap_perf). This enables easy integration with Python codes as well as PyTorch deep learning framework. 
+We also provides a Python implementation of the framework: [ap_perf](https://github.com/rizalzaf/ap_perf). This enables easy integration with Python codes as well as PyTorch deep learning framework. 
 
-We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library in [ap-perf-py](https://github.com/rizalzaf/ap_perf-py). 
+We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library in [ap_perf_py](https://github.com/rizalzaf/ap_perf_py). 
 
 ## Citation
 
