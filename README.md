@@ -243,7 +243,7 @@ For working examples, please visit [AP-examples](https://github.com/rizalzaf/AP-
 
 We also provides a Python implementation of the framework: [ap-perf](https://github.com/rizalzaf/ap_perf). This enables easy integration with Python codes as well as PyTorch deep learning framework. 
 
-We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library. 
+We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library in [ap-perf-py](https://github.com/rizalzaf/ap_perf-py). 
 
 ## Citation
 
