@@ -171,7 +171,7 @@ function obj_rho_lambda(rho_lambda::AbstractVector, A::AbstractMatrix,
         opt_p = solve_p_given_abk(a, b, k)
         best_P[:, k] = opt_p
 
-        obj += sum(opt_p) * rho / k + sum((opt_p - a) .^ 2) / 2
+        obj += sum(opt_p .* b) + sum((opt_p - a) .^ 2) / 2
         grad[1] += sum(opt_p) / k
     end
 
@@ -235,6 +235,17 @@ function lbfgs_projection_with_constraint(A::AbstractMatrix, B_list::AbstractVec
     return opt_P
 end
 
+function exact_with_constraint(A::AbstractMatrix, B::AbstractMatrix, 
+    c::Number, tau::Number)
+
+    needed = tau - c - sum(A .* B)
+    if needed > 0
+        z = needed / sum(B .^ 2)
+        return z * B + A 
+    else
+        return A
+    end
+end
 
 function dykstra_projection_with_constraint(A::AbstractMatrix, B_list::AbstractVector{<:AbstractMatrix}, 
     c_list::AbstractVector{<:Number}, tau_list::AbstractVector{<:Number}; args...)

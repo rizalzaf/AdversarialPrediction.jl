@@ -69,6 +69,11 @@ function constraint(::Type{<:PerformanceMetric}, C::ConfusionMatrix)
     return nothing
 end
 
+# optional function to overload
+function constraint(::Type{<:PerformanceMetric}, C::ConfusionMatrix, args...)
+    return nothing
+end
+
 # macro for defining metric
 macro metric(name)
     return quote
