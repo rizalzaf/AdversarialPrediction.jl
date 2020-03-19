@@ -2,8 +2,8 @@
 
 This package provides a way to easily optimize generic performance metrics in supervised learning settings using the [Adversarial Prediction](https://arxiv.org/abs/1812.07526) framework. 
 The method can be integrated easily into differentiable learning pipelines.
-The package is a Julia implementation of an AISTATS 2020 paper ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"](https://arxiv.org/abs/1912.00965) by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
-For a Python interface, please check  [ap-perf-py](https://github.com/rizalzaf/ap_perf_py).
+The package is a Julia implementation of an AISTATS 2020 paper, ["AP-Perf: Incorporating Generic Performance Metrics in Differentiable Learning"](https://arxiv.org/abs/1912.00965), by [Rizal Fathony](http://rizal.fathony.com) and [Zico Kolter](http://zicokolter.com). 
+For a Python implementation of the framework, please check  [ap-perf](https://github.com/rizalzaf/ap_perf).
 
 
 ## Overview
@@ -210,7 +210,7 @@ Flux.train!(objective, params(model), train_set, ADAM(1e-3))
 
 ## Customizing Inner Optimization Solver
 
-For solving the inner optimization problem, AdversarialPrediction.jl uses ADMM based formulation. In the default setting, it will run 100 iterations of the ADMM optimization. We can also manually set the number of iteration using `max_iter` argument in the `ap_objective`.
+For solving the inner optimization problem, AdversarialPrediction.jl uses an ADMM based formulation. In the default setting, it will run 100 iterations of the ADMM optimization. We can also manually set the number of iteration using `max_iter` argument in the `ap_objective`.
 
 ```julia
 objective(x, y) = ap_objective(model(x), y, f1_score)            # 100 iterations
@@ -223,13 +223,27 @@ objective(x, y) = ap_objective(model(x), y, max_iter = 200)      # 200 iteration
 The adversarial prediction formulation inside the function `ap_objective` needs to solve a maximin problem with a quadratic size of variables using the ADMM solver. The complexity of solving the problem is O(m^3), where m is the number of samples in a minibatch.
 In practice, for a batch size of 25, the ADMM solver takes around 20 - 30 milliseconds to solve on a PC with an Intel Core i7 processor. If we reduce the ADMM iterations to 50 iterations, it will take around 10 - 15 milliseconds.
 
+## Commonly Used Metrics
+
+The package provides definitions of commonly use metrics including: `f1_score`, `f2_score`, `gpr`, `mcc`, `kappa`, etc. To load the metrics to the current Julia environment, please use `AdversarialPrediction.CommonMetrics`. Please check the detailed definition of the metrics in `src/common_metrics/common_metrics.jl`.
+
+```julia
+using AdversarialPrediction
+using AdversarialPrediction.CommonMetrics: f1_score, kappa
+
+objective(x, y) = ap_objective(model(x), y, kappa)
+```
+
+
 ## Code Examples
 
 For working examples, please visit [AP-examples](https://github.com/rizalzaf/AP-examples) repository. The project contains examples of using AdversarialPrediction.jl for classification with tabular datasets, as well as for image classification with MNIST and FashionMNIST datasets.
 
-## Python Interface
+## Python Implementation and Interface
 
-We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library. This enables easy integration with Python codes as well as PyTorch deep learning framework. Please visit [ap-perf-py](https://github.com/rizalzaf/ap_perf_py) for the details.
+We also provides a Python implementation of the framework: [ap-perf](https://github.com/rizalzaf/ap_perf). This enables easy integration with Python codes as well as PyTorch deep learning framework. 
+
+We also provide a python interface to AdversarialPrediction.jl via [PyJulia](https://pyjulia.readthedocs.io/en/stable/) library. 
 
 ## Citation
 
