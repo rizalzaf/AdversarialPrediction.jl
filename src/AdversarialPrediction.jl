@@ -8,8 +8,8 @@ using LinearAlgebra
 using LBFGSB
 
 # packages used in nn.jl
-using Flux.Zygote
-using Flux.Zygote: @adjoint
+using Zygote
+using Zygote: @adjoint
 using Requires
 
 include("expression.jl")

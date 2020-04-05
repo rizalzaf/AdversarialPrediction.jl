@@ -61,7 +61,7 @@ Note that the equation for F-beta in general is:
 
 AdversarialPrediction.jl can be installed from a Julia terminal:
 ```
-]add AdversarialPrediction
+]add https://github.com/rizalzaf/AdversarialPrediction.jl
 ```
 Some pre-requisite packages will be installed automatically: `Zygote` (Flux's automatic differential engine), `Requires`, and `LBFGSB`. Please also install `Flux` separately. For GPU training, `CuArrays` package needs to be installed.
 
