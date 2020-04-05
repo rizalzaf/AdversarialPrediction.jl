@@ -1,15 +1,17 @@
 name = "AdversarialPrediction"
 uuid = "ad42c870-428c-46ff-ae37-01b7349146a9"
-authors = ["Rizal Fathony <rfathony@cs.cmu.edu>"]
-version = "0.2.0"
+authors = ["Rizal Fathony <rizal@fathony.com>"]
+version = "0.1.0"
 
 [deps]
-Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LBFGSB = "5be7bae1-8223-5378-bac3-9e7378a2f6e6"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-Flux = "~0.9"
+LBFGSB = "0.3, 1.0"
+Requires = "0.5, 1.0"
+Zygote = "0.4, 1.0"
 julia = "1"

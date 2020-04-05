@@ -13,8 +13,8 @@ function ap_objective(ps::CuArrays.CuVector, y::CuArrays.CuVector, pm::Performan
     return -obj
 end
 
-# objectve & grad: cuda vector
-function ap_obj_grad(ps::CuArrays.CuVector, y::CuArrays.CuVector, pm::PerformanceMetric; args...)
+# custom gradient
+@adjoint function ap_objective(ps::CuArrays.CuVector, y::CuArrays.CuVector, pm::PerformanceMetric; args...)
     psc = CuArrays.collect(ps)    # to cpu
     yc = CuArrays.collect(y)      # to cpu
 
@@ -22,6 +22,6 @@ function ap_obj_grad(ps::CuArrays.CuVector, y::CuArrays.CuVector, pm::Performanc
     obj = obj + dot(psc, yc)
     
     grad = CuArrays.cu(q - yc)   # to cuda
-    return -obj, Δ -> (grad, nothing, nothing)
+    return -obj, Δ -> (Δ * grad, nothing, nothing)
 end
 

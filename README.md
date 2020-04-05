@@ -63,7 +63,7 @@ AdversarialPrediction.jl can be installed from a Julia terminal:
 ```
 ]add https://github.com/rizalzaf/AdversarialPrediction.jl
 ```
-Some pre-requisite packages will be installed automatically: `Flux`, `Requires`, and `LBFGSB`. Note that it requires `Flux v0.9`, which uses `Tracker`-based auto differentiation tool, rather than the newer `Zygote`-based tool. It will switches to `Zygote` in the future release. For GPU training, `CuArrays` package needs to be installed.
+Some pre-requisite packages will be installed automatically: `Zygote` (Flux's automatic differential engine), `Requires`, and `LBFGSB`. Please also install `Flux` separately. For GPU training, `CuArrays` package needs to be installed.
 
 
 ## Performance Metrics

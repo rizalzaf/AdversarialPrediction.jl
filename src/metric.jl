@@ -60,13 +60,8 @@ end
 abstract type PerformanceMetric end
 
 ## functions that needed to be implemented
-function define(::Type{<:PerformanceMetric}, C::ConfusionMatrix)
+function define(::Type{<:PerformanceMetric}, C::ConfusionMatrix, args...)
     return EXPR_UnaryIdentity()
-end
-
-# optional function to overload
-function constraint(::Type{<:PerformanceMetric}, C::ConfusionMatrix)
-    return nothing
 end
 
 # optional function to overload
@@ -671,3 +666,5 @@ function objective(pm::PerformanceMetric, psi::AbstractVector, y::AbstractVector
 
     return obj, q
 end
+
+

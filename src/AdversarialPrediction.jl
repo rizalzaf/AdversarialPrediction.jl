@@ -8,8 +8,8 @@ using LinearAlgebra
 using LBFGSB
 
 # packages used in nn.jl
-using Flux.Tracker
-using Flux.Tracker: TrackedArray, track, data, @grad
+using Flux.Zygote
+using Flux.Zygote: @adjoint
 using Requires
 
 include("expression.jl")
