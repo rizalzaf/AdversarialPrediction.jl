@@ -1,50 +1,11 @@
-- name: Julia TagBot
-  uses: JuliaRegistries/TagBot@v1.8.1
-  with:
-    # GitHub API token
-    token: 
-    # Owner/name of the registry repository
-    registry: # optional, default is JuliaRegistries/General
-    # Whether or not to merge release branches
-    branches: # optional
-    # Whether or not to create a repository dispatch event prior to making releases
-    dispatch: # optional
-    # Number of minutes to wait after creating a repository dispatch event
-    dispatch_delay: # optional, default is 5
-    # Number of days to look back in time for new releases
-    lookback: # optional, default is 3
-    # SSH private key for pushing tags
-    ssh: # optional
-    # Password for the SSH key
-    ssh_password: # optional
-    # GPG key for signing tags
-    gpg: # optional
-    # Password for the GPG key
-    gpg_password: # optional
-    # Changelog template
-    changelog: # optional, default is ## {{ package }} {{ version }}
-
-{% if previous_release %}
-[Diff since {{ previous_release }}]({{ compare_url }})
-{% endif %}
-
-{% if custom %}
-{{ custom }}
-{% endif %}
-
-{% if issues %}
-**Closed issues:**
-{% for issue in issues %}
-- {{ issue.title }} (#{{ issue.number }})
-{% endfor %}
-{% endif %}
-
-{% if pulls %}
-**Merged pull requests:**
-{% for pull in pulls %}
-- {{ pull.title }} (#{{ pull.number }}) (@{{ pull.author.username }})
-{% endfor %}
-{% endif %}
-
-    # Labels for issues and pull requests to be ignored (comma-delimited)
-    changelog_ignore: # optional
+name: TagBot
+on:
+  schedule:
+    - cron: 0 * * * *
+jobs:
+  TagBot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: JuliaRegistries/TagBot@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
