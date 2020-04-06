@@ -8,8 +8,8 @@ using LinearAlgebra
 using LBFGSB
 
 # packages used in nn.jl
-using Zygote
-using Zygote: @adjoint
+using Flux.Zygote
+using Flux.Zygote: @adjoint
 using Requires
 
 include("expression.jl")
@@ -29,6 +29,6 @@ export ConfusionMatrix, CM_Value, PerformanceMetric
 export @metric, define, constraint
 export special_case_positive!, special_case_negative!, cs_special_case_positive!, cs_special_case_negative!
 export compute_metric, compute_constraints, objective
-export ap_objective, ap_obj_grad
+export ap_objective
 
 end # module
