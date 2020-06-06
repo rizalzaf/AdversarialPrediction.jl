@@ -341,7 +341,7 @@ function compute_admm_matrices!(pm::PerformanceMetric, n)
         B += IK * multiplier_pq.c[idx, idx]' * IK
         
         if !info.special_case_positive
-            B += IK * ones(n) * multiplier_pq.c[idx, 1]' * IK  -  IK * multiplier_pq.c[1, idx] * ones(n)' * IK
+            B -= IK * ones(n) * multiplier_pq.c[idx, 1]' * IK  +  IK * multiplier_pq.c[1, idx] * ones(n)' * IK
             D += ones(n) * multiplier_pq.c[idx, 1]' * IK
             E += ones(n) * multiplier_pq.c[1, idx]' * IK
 

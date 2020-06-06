@@ -1,7 +1,7 @@
 name = "AdversarialPrediction"
 uuid = "ad42c870-428c-46ff-ae37-01b7349146a9"
 authors = ["Rizal Fathony <rizal@fathony.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
